@@ -7,6 +7,20 @@ Created on Mon Nov  8 13:46:10 2021
 #%%
 
 def make_16byte_form(hexdecimal_string):
+    '''
+    출력값을 16byte(128bit)의 16진수 string으로 하기 위해
+    (앞자릿수가 0이면 python은 출력을 하지 않기 때문에)
+    Parameters
+    ----------
+    hexdecimal_string : string
+        16진수 문자열! 앞에 '0x'가 붙어있으면 인식x
+        hex(int_value)[2:] 나 format() 사용 가능
+    Returns
+    -------
+    res : string
+        16byte(128bit)의 16진수 string
+        len(res) = 32
+    '''
     res = ""
     if len(hexdecimal_string) == 16:
         res = hexdecimal_string
@@ -18,6 +32,20 @@ def make_16byte_form(hexdecimal_string):
     return res
 
 def make_8bit_form(binarized_int_string):
+    '''
+    출력값을 8bit의 2진수 string으로 하기 위해
+    (앞자릿수가 0이면 python은 출력을 하지 않기 때문에)
+    Parameters
+    ----------
+    binarized_int_string : string
+        2진수 문자열! 앞에 '0b'가 붙어있으면 인식x
+        bin(int_value)[2:] 나 format() 사용 가능
+    Returns
+    -------
+    res : string
+        8bit의 2진수 string
+        len(res) = 8
+    '''
     res = ""
     if len(binarized_int_string) == 8:
         res = binarized_int_string
@@ -29,6 +57,20 @@ def make_8bit_form(binarized_int_string):
     return res
 
 def make_4byte_hex_form(hex_string):
+    '''
+    출력값을 4byte(32bit)의 16진수 string으로 하기 위해
+    (앞자릿수가 0이면 python은 출력을 하지 않기 때문에)
+    Parameters
+    ----------
+    hex_string : string
+        16진수 문자열! 앞에 '0x'가 붙어있으면 인식x
+        hex(int_value)[2:] 나 format() 사용 가능
+    Returns
+    -------
+    res : string
+        4byte(32bit)의 16진수 string
+        len(res) = 8
+    '''
     res = ""
     if len(hex_string) == 8:
         res = hex_string
@@ -40,6 +82,20 @@ def make_4byte_hex_form(hex_string):
     return res
      
 def make_8bit_hex_form(hex_string):
+    '''
+    출력값을 8bit의 16진수 string으로 하기 위해
+    (앞자릿수가 0이면 python은 0을 출력을 하지 않기 때문에)
+    Parameters
+    ----------
+    hex_string : string
+        16진수 문자열! 앞에 '0x'가 붙어있으면 인식x
+        hex(int_value)[2:] 나 format() 사용 가능
+    Returns
+    -------
+    res : string
+        8bit의 16진수 string
+        len(res) = 2
+    '''
     res = ""
     if len(hex_string) == 2:
         res = hex_string
@@ -48,19 +104,47 @@ def make_8bit_hex_form(hex_string):
     return res
     
 def aes_128_pre_round(hex_plain,hex_key,sbox):
+    '''
+    AES의 pre_round 단계로, 키 xor 연산만 진행
+    키 xor 연산 후 결과 list와, key expansion한 결과 리턴
+    Parameters
+    ----------
+    hex_plain : 16진수 string ('0x' 접두어 없음)
+        16진수 평문
+    hex_key : 16진수 string ('0x' 접두어 없음)
+        16진수 key
+    sbox : List
+        Substitution Box, 길이는 256, 요소 하나하나는 1byte 16진수 string
+
+    Returns
+    -------
+    pre_round : List
+        평문을 Pre_round 진행 후 상태의 1차원 list
+    W : list
+        len(W) = 44
+        Key Expansion 한 결과값
+
+    '''
+    #Round Constant
     RC = ['00000001','00000010','00000100','00001000','00010000',
           '00100000','01000000','10000000','00011011','00110110']
+    
+    #1byte 단위로 평문 분할
     hex_plain_list = []
     for i in range(16):
         hex_plain_list.append(hex_plain[2*i]+hex_plain[2*i+1])
-    hex_plain_mat_rowfirst = list()
+        
+    #AES 알고리즘에서 column 먼저 채우는 형태의 matrix 사용 그냥 1차원 배열로 사용하는 것.
+    hex_plain_mat_colfirst = list()
     for i in range(4):
         for j in range(4):
-            hex_plain_mat_rowfirst.append(hex_plain_list[4*j + i])
+            hex_plain_mat_colfirst.append(hex_plain_list[4*j + i])
     k_list = []
     for i in range(4):
         k_list.append(hex_key[8*i:8*(i+1)])
     pre_round = []
+    
+    #Key Expansion 진행
     W=["" for x in range(44)]
     for i in range(4):
         W[i] = k_list[i]
@@ -78,17 +162,52 @@ def aes_128_pre_round(hex_plain,hex_key,sbox):
             w_i = make_4byte_hex_form(hex(int(W[i-1],16) ^ int(W[i-4],16))[2:])
         
         W[i] = w_i
+    
+    #현재 round에서 사용할 키 추출(pre_round는 입력값으로 받은 key 그대로 사용)
     key_xor = []
     for i in range(4):
         for j in range(4):
             key_xor.append(W[j][2*i:2*(i+1)])
     for i in range(16):
-        pr = make_8bit_hex_form(hex(int(hex_plain_mat_rowfirst[i],16) ^ int(key_xor[i],16))[2:])
+        pr = make_8bit_hex_form(hex(int(hex_plain_mat_colfirst[i],16) ^ int(key_xor[i],16))[2:])
         pre_round.append(pr)
     return (pre_round,W)
  
 
 def aes_128_mid(round_end,sbox,W,round_idx):
+    '''
+    AES 알고리즘 1round부터 9round까지는 과정이 같음
+    1 - SubBytes(S-Box)
+    2 - ShiftRows 1행 그대로, 
+                  2행은 rotate over 1 bytes(가장 왼쪽 한개가 가장 오른쪽으로), 
+                  3행은 rotate over 2 bytes(가장 왼쪽 두개가 가장 오른쪽 2개로), 
+                  4행은 rotate over 3 bytes
+    3 - MixColumns 
+    02 03 01 01
+    01 02 03 01
+    01 01 02 03
+    03 01 01 02
+    SubBytes -> ShiftRows -> MixColumns -> AddRoundKey
+
+    Parameters
+    ----------
+    round_end : 1차원 List
+        알고싶은 round의 이전 round 종료 후 결과 .
+    sbox : List
+        Substitution Box, 길이는 256, 요소 하나하나는 1byte 16진수 string
+    W : list
+        len(W) = 44
+        Key Expansion 한 결과값
+    round_idx : int
+        구하고 싶은 round
+
+    Returns
+    -------
+    cur_round_end : 1차원 List
+        알고싶은 round의 종료 후 결과 .
+
+    '''
+    #SubBytes 단계
     sub_bytes = []
     tmp_list = []
     idx = 0
@@ -100,6 +219,8 @@ def aes_128_mid(round_end,sbox,W,round_idx):
         idx += 1
     sub_bytes_copied = sub_bytes.copy()
     idx = 0
+    
+    #ShiftRows 단계
     shift_rows = [["","","",""],
                  ["","","",""],
                  ["","","",""],
@@ -111,12 +232,10 @@ def aes_128_mid(round_end,sbox,W,round_idx):
         for j in range(0,i):
             idx += 1
             shift_rows[i][idx] = sub_bytes_copied[i][j]
-    #mix_columns_mat = [['02','03','01','01'],['01', '02', '03', '01'],['01', '01', '02', '03'],['03', '01', '01', '02']]
+            
+    #MixColumns 단계
     mix_columns_mat = ['02','03','01','01','01', '02', '03', '01','01', '01', '02', '03','03', '01', '01', '02']
-    #col_idx = 0
-    #mix_cols_cal = []
     for i in range(4):
-    #col_indices = [k*4 + i for k in range(4)]
         len_4_list = []
         mixcol = [shift_rows[x][i] for x in range(4)]
         for j in range(16):
@@ -146,6 +265,8 @@ def aes_128_mid(round_end,sbox,W,round_idx):
                 len_4_list = list()
     
     cur_round_end = []
+    
+    #AddRoundkey 단계
     key_xor = []
     for i in range(4):
         for j in range(4*round_idx,4*(round_idx + 1)):
@@ -156,6 +277,37 @@ def aes_128_mid(round_end,sbox,W,round_idx):
     return cur_round_end 
             
 def aes_128_last_round(round_end,sbox,W,round_idx):
+    '''
+    AES 알고리즘 10round는 mixcolumns 단계 없음
+    1 - SubBytes(S-Box)
+    2 - ShiftRows 1행 그대로, 
+                  2행은 rotate over 1 bytes(가장 왼쪽 한개가 가장 오른쪽으로), 
+                  3행은 rotate over 2 bytes(가장 왼쪽 두개가 가장 오른쪽 2개로), 
+                  4행은 rotate over 3 bytes
+    
+    SubBytes -> ShiftRows -> AddRoundKey
+
+    Parameters
+    ----------
+    round_end : 1차원 List
+        알고싶은 round의 이전 round 종료 후 결과 .
+    sbox : List
+        Substitution Box, 길이는 256, 요소 하나하나는 1byte 16진수 string
+    W : list
+        len(W) = 44
+        Key Expansion 한 결과값
+    round_idx : int
+        구하고 싶은 round
+        이 코드는 평문과 키가 모두 128bit인 것만 진행 round_idx = 10
+
+    Returns
+    -------
+    cur_round_end : 1차원 List
+        알고싶은 round의 종료 후 결과 .
+
+    '''
+    
+    #SubBytes 단계
     sub_bytes = []
     tmp_list = []
     idx = 0
@@ -167,6 +319,8 @@ def aes_128_last_round(round_end,sbox,W,round_idx):
         idx += 1
     sub_bytes_copied = sub_bytes.copy()
     idx = 0
+    
+    #ShiftRows 단계
     shift_rows = [["","","",""],
                  ["","","",""],
                  ["","","",""],
@@ -178,6 +332,8 @@ def aes_128_last_round(round_end,sbox,W,round_idx):
             idx += 1
             shift_rows[i][idx] = sub_bytes_copied[i][j]
     cur_round_end = []
+    
+    #AddRoundkey 단계
     key_xor = []
     for i in range(4):
         for j in range(4*round_idx,4*(round_idx + 1)):
@@ -186,8 +342,26 @@ def aes_128_last_round(round_end,sbox,W,round_idx):
         pr = make_8bit_hex_form(hex(int(shift_rows[i//4][i%4],16) ^ int(key_xor[i],16))[2:])
         cur_round_end.append(pr)
     return cur_round_end
-        
+       
 def aes_128(hex_plain,hex_key,sbox):
+    '''
+    aes_128 전체 과정
+
+    Parameters
+    ----------
+    hex_plain : 16진수 string ('0x' 접두어 없음)
+        16진수 평문
+    hex_key : 16진수 string ('0x' 접두어 없음)
+        16진수 key
+    sbox : List
+        Substitution Box, 길이는 256, 요소 하나하나는 1byte 16진수 string
+
+    Returns
+    -------
+    hex_cipher : 16byte hex string
+        결과 암호문 string
+
+    '''
     hex_cipher = ""
     pre_round,W = aes_128_pre_round(hex_plain,hex_key,sbox)
     hex_cipher_list = pre_round.copy()
@@ -244,7 +418,7 @@ sample_output = '56e4c69d6b354be2dafae0671b77689c'
 my_output = aes_128(sample_input_plaintext,sample_input_key,sbox)
 print(my_output == sample_output)
 #%%
-#input
+#제출용 main 코드
 
 sbox = ['63', '7c',	'77',	'7b',	'f2',	'6b',	'6f',	'c5',	'30',	'01',	'67',	'2b',	'fe',	'd7',	'ab',	'76',
         'ca', '82',	'c9',	'7d',	'fa',	'59',	'47',	'f0',	'ad',	'd4',	'a2',	'af',	'9c',	'a4',	'72',	'c0',
