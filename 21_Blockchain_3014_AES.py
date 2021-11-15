@@ -125,7 +125,7 @@ def aes_128_pre_round(hex_plain,hex_key,sbox):
         Key Expansion 한 결과값
 
     '''
-    #Round Constant
+    #Round Constant (1라운드에는 RC[0]...10라운드에는 RC[9] 사용)
     RC = ['00000001','00000010','00000100','00001000','00010000',
           '00100000','01000000','10000000','00011011','00110110']
     
@@ -134,7 +134,7 @@ def aes_128_pre_round(hex_plain,hex_key,sbox):
     for i in range(16):
         hex_plain_list.append(hex_plain[2*i]+hex_plain[2*i+1])
         
-    #AES 알고리즘에서 column 먼저 채우는 형태의 matrix 사용 그냥 1차원 배열로 사용하는 것.
+    #AES 알고리즘에서 column 먼저 채우는 형태의 matrix 사용하지만, 그냥 1차원 배열로 사용하는 것.
     hex_plain_mat_colfirst = list()
     for i in range(4):
         for j in range(4):
@@ -163,7 +163,7 @@ def aes_128_pre_round(hex_plain,hex_key,sbox):
         
         W[i] = w_i
     
-    #현재 round에서 사용할 키 추출(pre_round는 입력값으로 받은 key 그대로 사용)
+    #현재 round에서 사용할 키 추출(pre_round 단계의 addroundkey: 입력값으로 받은 key 그대로 사용)
     key_xor = []
     for i in range(4):
         for j in range(4):
